@@ -10,7 +10,7 @@ router.get('/', (req, res, next) => {
       res.json(accounts);
     })
     .catch(err => {
-      res.status(500).json({ message: err.message });
+      res.status(400).json({ message: err.message });
     })
 })
 
@@ -57,7 +57,6 @@ router.delete('/:id', checkAccountId, (req, res, next) => {
 
 router.use((err, req, res, next) => { // eslint-disable-line
   res.status(err.status || 500).json({
-    customError: 'something went wrong',
     message: err.message,
     stack: err.stack
   })

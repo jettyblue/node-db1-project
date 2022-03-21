@@ -9,7 +9,7 @@ const checkAccountPayload = (req, res, next) => {
     res.status(400).json({ message: 'name and budget are required' });
   } else if (name.trim().length < 3 || name.trim().length > 100) {
     res.status(400).json({ message: 'name of account must be between 3 and 100' });
-  } else if (typeof budget != 'number') {
+  } else if (typeof budget != 'number' || isNaN(budget) === true) {
     res.status(400).json({ message: 'budget of account must be a number' });
   }else if (budget > 1000000 || budget < 0) {
     res.status(400).json({ message: 'budget of account is too large or too small' });
