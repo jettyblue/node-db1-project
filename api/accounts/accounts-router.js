@@ -1,65 +1,72 @@
-// Imports
-const router = require('express').Router();
-const Accounts = require('./accounts-model');
-const { checkAccountPayload, checkAccountNameUnique, checkAccountId } = require('./accounts-middleware');
+const router = require("express").Router();
+const Accounts = require("./accounts-model");
+const { checkAccountId, checkAccountNameUnique, checkAccountPayload } = require("./accounts-middleware");
 
-// Endpoints
-router.get('/', (req, res, next) => {
-  Accounts.getAll()
-    .then(accounts => {
-      res.json(accounts);
-    })
-    .catch(err => {
-      res.status(400).json({ message: err.message });
-    })
-})
-
-router.get('/:id', checkAccountId, (req, res, next) => {
-  const { id } = req.params;
-    Accounts.getById(id)
-      .then(account => {
-        res.status(200).json(account);
-      })
-      .catch(err => {
-        res.status(400).json({ message: err.message });
-      })
-})
-
-router.post('/', checkAccountPayload, checkAccountNameUnique, (req, res, next) => {
-  Accounts.create(req.body)
-    .then(newAccount => {
-      res.status(201).json(newAccount);
-    })
-    .catch(err => {
-      res.status(400).json({ message: err.message });
-    })
-})
-
-router.put('/:id', checkAccountId, (req, res, next) => {
-  Accounts.updateById(req.params.id, req.body)
-    .then(updatedAccount => {
-      res.status(200).json(updatedAccount);
-    })
-    .catch(err => {
-      res.status(400).json({ message: err.message});
-    })
+router.get("/", async (req, res, next) => {
+  try {
+    const data = await Accounts.getAll();
+    res.json(data);
+  } catch(err) {
+    next(err);
+  }
 });
 
-router.delete('/:id', checkAccountId, (req, res, next) => {
-  Accounts.deleteById(req.params.id)
-    .then(deletedAccount => {
-      res.status(200).json(deletedAccount);
-    })
-    .catch(err => {
-      res.status(400).json({ message: err.message });
-    })
-})
+router.get("/:id", checkAccountId, async (req, res) => {
+  try {
+    const [user] = req.user;
+    res.status(200).json(user);
+  } catch(err) {
+    res.status(500).json({ message: "error getting account" });
+  }
+});
+
+router.post("/", checkAccountNameUnique, checkAccountPayload, async (req, res) => {
+    try {
+      const { name, budget } = req.body;
+      const postedAccount = await Accounts.create({ name: name.trim(), budget: budget });
+      res.status(201).json({
+        id: postedAccount.id,
+        budget: postedAccount.account.budget,
+        name: postedAccount.account.name
+      });
+    } catch(err) {
+      res.status(500).json({ message: "error adding account" });
+    }
+  }
+);
+
+router.put("/:id", checkAccountId, checkAccountPayload, async (req, res) => {
+  try {
+    const { name, budget } = req.body;
+    const { id } = req.params;
+    const updatedAccount = await Accounts.updateById(id,
+      { name: name.trim(), budget });
+    res.status(200).json({
+      id: updatedAccount.id,
+      budget: updatedAccount.account.budget,
+      name: updatedAccount.account.name,
+    });
+  } catch(err) {
+    res.status(500).json({ message: "error adding account" });
+  }
+});
+
+router.delete("/:id", checkAccountId, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const removedAccount = await Accounts.deleteById(id);
+    res.status(200).json(removedAccount);
+  } catch(err) {
+    res.status(500).json({ message: "error deleting account" });
+  }
+});
 
 router.use((err, req, res, next) => { // eslint-disable-line
   res.status(err.status || 500).json({
+    customError: 'Hm. Something is wrong here.',
     message: err.message,
     stack: err.stack
-  })
-})
+  });
+});
 
 module.exports = router;
